@@ -77,8 +77,8 @@ void callFunctionPeriodically(CallbackFunction functionToCall, unsigned long int
     previousMillis = currentMillis;
   }
 }
-#define SPEED_RUN 80 //cm/s
-#define SPEED_SLOW 40 //cm/s
+#define SPEED_RUN 100 //cm/s
+#define SPEED_SLOW 25 //cm/s
 #define SPEED_MAX 100 //cm/s
 #define NMOTORS 4
 #define M_LEFT_DOWN 2
@@ -97,9 +97,19 @@ void callFunctionPeriodically(CallbackFunction functionToCall, unsigned long int
 #define total_length (length+width)
 //macro for detection af falling edge
 #define FE(signal, state) (state=(state<<1)|(signal&1)&3)==2
-float P_speed=12.4;
-float D_speed=0.01;
-float I_speed=60.5;
+#define SHOOT_L1 44
+#define SHOOT_L2 45
+#define SPEED_SHOOT 200
+#define STEP_GO 300
+#define SPEED_STEP 400
+#define MOVING 0
+#define SHOOTING 1
+#define STOP_ALL 2
+#define SHOOTING_ALIGN 3
+int state_robot_all=STOP_ALL;
+float P_speed=10.4;
+float D_speed=0.0;
+float I_speed=55.5;
 const bool test_ff=0;
 const int enca[] = {18,19,20,21};
 const int encb[]= {17,16,15,14};
@@ -109,7 +119,7 @@ const int dir_encod_M1=1;
 const int dir_encod_M0=1;
 const float LOOP_FREQUENCY=100.0;
 const float speed_ff=10.0; // 100 Hz
-const bool serial_tune = 1;
+const bool serial_tune = 0;
 const int time_run_test=2000;
 const float LOOP_CONTROL=1.0/LOOP_FREQUENCY;
 const float cm_per_count = (PI * WHEEL_DIAMETER) / ENCODER_TOTAL;

@@ -1,4 +1,5 @@
 #include <PS2X_lib.h>
+#include "config.h"
 PS2X ps2;
 #define PS2_DAT 13
 #define PS2_CMD 11
@@ -6,7 +7,70 @@ PS2X ps2;
 #define PS2_CLK 12
 #define pressures false
 #define rumble false
-bool running = 0;
+#define DEBOUNCE_DELAY 50.0  // Thời gian debounce 50ms
+struct ButtonState {
+  bool debouncedState = false;
+  unsigned long lastPressTime = 0;
+  bool awaitingDebounce = false;
+  bool waitRelease = false;
+};
+
+ButtonState buttonStates[19];
+
+void debounceButton(int buttonIndex, int buttonCode, bool &stateVar, const char *buttonName) {
+  bool pressed = ps2.ButtonPressed(buttonCode);
+  bool released = ps2.ButtonReleased(buttonCode);
+  // if (buttonIndex == 0 && released) Serial.println("REL");
+  float incre=1;
+  float incre_rel=1.5;
+  if(buttonIndex==14||buttonIndex==17)
+  {
+    incre=0.5;
+    incre_rel=0.4;
+  }
+  if (pressed && !buttonStates[buttonIndex].debouncedState && !buttonStates[buttonIndex].awaitingDebounce) {
+    buttonStates[buttonIndex].lastPressTime = millis();
+    buttonStates[buttonIndex].awaitingDebounce = true;
+  }
+
+
+  if (buttonStates[buttonIndex].awaitingDebounce) {
+    if (millis() - buttonStates[buttonIndex].lastPressTime > DEBOUNCE_DELAY*incre) {
+
+
+      buttonStates[buttonIndex].debouncedState = true;
+      stateVar = true;
+      Serial.print(buttonName);
+      Serial.println(" Pressed");
+
+
+      buttonStates[buttonIndex].awaitingDebounce = false;
+    } else {
+      if (released) {
+        buttonStates[buttonIndex].debouncedState = false;
+        buttonStates[buttonIndex].awaitingDebounce = false;
+      }
+    }
+  }
+
+  if (released && buttonStates[buttonIndex].debouncedState && !buttonStates[buttonIndex].waitRelease) {
+    buttonStates[buttonIndex].waitRelease = true;
+    buttonStates[buttonIndex].lastPressTime = millis();
+    // buttonStates[buttonIndex].debouncedState = false;
+    // stateVar = false;
+    // Serial.print(buttonName);
+    // Serial.println(" Released");
+  }
+  if (buttonStates[buttonIndex].waitRelease) {
+    if (millis() - buttonStates[buttonIndex].lastPressTime > (DEBOUNCE_DELAY*incre_rel)) {
+      buttonStates[buttonIndex].debouncedState = false;
+      buttonStates[buttonIndex].waitRelease = false;
+      stateVar = false;
+      Serial.print(buttonName);
+      Serial.println(" Released");
+    } else if (pressed) buttonStates[buttonIndex].waitRelease = false;
+  }
+}
 struct GamepadState {
   bool SELECT;
   bool L3;
@@ -52,160 +116,69 @@ void setup_gamepad() {
 }
 void process_gamepad() {
   ps2.read_gamepad();
-  static int count_release=0;
-  // count_relase+=1;
-  if (ps2.ButtonPressed(PSB_PAD_UP)) {
-    stateBut.PAD_UP = true;
-    Serial.println("PAD_UP Pressed");
-  } else if (ps2.ButtonReleased(PSB_PAD_UP)) {
-    stateBut.PAD_UP = false;
-    Serial.println("PAD_UP Released");
-  }
 
-  if (ps2.ButtonPressed(PSB_PAD_RIGHT)) {
-    stateBut.PAD_RIGHT = true;
-    Serial.println("PAD_RIGHT Pressed");
-  } else if (ps2.ButtonReleased(PSB_PAD_RIGHT)) {
-    stateBut.PAD_RIGHT = false;
-    Serial.println("PAD_RIGHT Released");
-  }
+    if (state_robot_all == MOVING) {
+      debounceButton(0, PSB_PAD_UP, stateBut.PAD_UP, "PAD_UP");
+      debounceButton(1, PSB_PAD_RIGHT, stateBut.PAD_RIGHT, "PAD_RIGHT");
+      debounceButton(2, PSB_PAD_DOWN, stateBut.PAD_DOWN, "PAD_DOWN");
+      debounceButton(3, PSB_PAD_LEFT, stateBut.PAD_LEFT, "PAD_LEFT");
+      debounceButton(18, PSB_SQUARE, stateBut.SQUARE, "PSB_SQUARE");
+      debounceButton(13, PSB_CIRCLE, stateBut.CIRCLE, "CIRCLE");
+      debounceButton(6, PSB_L1, stateBut.L1, "L1");
+      stateBut.L2=false;
+      stateBut.R2=false;
+      stateBut.R1=false;
+      stateBut.TRIANGLE=false;
+      stateBut.CROSS=false;
 
-  if (ps2.ButtonPressed(PSB_PAD_DOWN)) {
-    stateBut.PAD_DOWN = true;
-    Serial.println("PAD_DOWN Pressed");
-  } else if (ps2.ButtonReleased(PSB_PAD_DOWN)) {
-    stateBut.PAD_DOWN = false;
-    Serial.println("PAD_DOWN Released");
-  }
-
-  if (ps2.ButtonPressed(PSB_PAD_LEFT)) {
-    stateBut.PAD_LEFT = true;
-    Serial.println("PAD_LEFT Pressed");
-  } else if (ps2.ButtonReleased(PSB_PAD_LEFT)) {
-    stateBut.PAD_LEFT = false;
-    Serial.println("PAD_LEFT Released");
-  }
-  if (!running) {
-    if (ps2.ButtonPressed(PSB_SELECT)) {
-      stateBut.SELECT = true;
-      Serial.println("SELECT Pressed");
-    } else if (ps2.ButtonReleased(PSB_SELECT)) {
-      stateBut.SELECT = false;
-      Serial.println("SELECT Released");
-    }
-    if (ps2.ButtonPressed(PSB_L3)) {
-      stateBut.L3 = true;
-      Serial.println("L3 Pressed");
-    } else if (ps2.ButtonReleased(PSB_L3)) {
-      stateBut.L3 = false;
-      Serial.println("L3 Released");
+    } else if(state_robot_all ==SHOOTING) {
+      debounceButton(4, PSB_L2, stateBut.L2, "L2");
+      debounceButton(5, PSB_R2, stateBut.R2, "R2");
+      debounceButton(7, PSB_R1, stateBut.R1, "R1");
     }
 
-    if (ps2.ButtonPressed(PSB_R3)) {
-      stateBut.R3 = true;
-      Serial.println("R3 Pressed");
-    } else if (ps2.ButtonReleased(PSB_R3)) {
-      stateBut.R3 = false;
-      Serial.println("R3 Released");
+    else if(state_robot_all==SHOOTING_ALIGN)
+    {
+      debounceButton(14, PSB_TRIANGLE, stateBut.TRIANGLE, "TRIANGLE");
+      debounceButton(17, PSB_CROSS, stateBut.CROSS, "PSB_CROSS");
     }
+    else if(state_robot_all==STOP_ALL)
+    {
+      debounceButton(0, PSB_PAD_UP, stateBut.PAD_UP, "PAD_UP");
+      debounceButton(1, PSB_PAD_RIGHT, stateBut.PAD_RIGHT, "PAD_RIGHT");
+      debounceButton(2, PSB_PAD_DOWN, stateBut.PAD_DOWN, "PAD_DOWN");
+      debounceButton(3, PSB_PAD_LEFT, stateBut.PAD_LEFT, "PAD_LEFT");
+      debounceButton(18, PSB_SQUARE, stateBut.SQUARE, "PSB_SQUARE");
+      debounceButton(13, PSB_CIRCLE, stateBut.CIRCLE, "CIRCLE");
+      debounceButton(6, PSB_L1, stateBut.L1, "L1");
+      debounceButton(4, PSB_L2, stateBut.L2, "L2");
+      debounceButton(5, PSB_R2, stateBut.R2, "R2");
+      debounceButton(7, PSB_R1, stateBut.R1, "R1");
+       debounceButton(14, PSB_TRIANGLE, stateBut.TRIANGLE, "TRIANGLE");
+      debounceButton(17, PSB_CROSS, stateBut.CROSS, "PSB_CROSS");
+    }
+    
+       
+      // debounceButton(8, PSB_SELECT, stateBut.SELECT, "SELECT");
+      // debounceButton(9, PSB_START, stateBut.START, "START");
+      // debounceButton(10, PSB_GREEN, stateBut.GREEN, "GREEN");
+      // debounceButton(11, PSB_RED, stateBut.RED, "RED");
+      // debounceButton(12, PSB_BLUE, stateBut.BLUE, "BLUE");
 
-    if (ps2.ButtonPressed(PSB_START)) {
-      stateBut.START = true;
-      Serial.println("START Pressed");
-    } else if (ps2.ButtonReleased(PSB_START)) {
-      stateBut.START = false;
-      Serial.println("START Released");
-    }
-    if (ps2.ButtonPressed(PSB_L2)) {
-      stateBut.L2 = true;
-      Serial.println("L2 Pressed");
-    } else if (ps2.ButtonReleased(PSB_L2)) {
-      
-      stateBut.L2 = false;
-      Serial.println("L2 Released");
-    }
-
-    if (ps2.ButtonPressed(PSB_R2)) {
-      stateBut.R2 = true;
-      Serial.println("R2 Pressed");
-    } else if (ps2.ButtonReleased(PSB_R2)) {
-      stateBut.R2 = false;
-      Serial.println("R2 Released");
-    }
-
-    if (ps2.ButtonPressed(PSB_L1)) {
-      stateBut.L1 = true;
-      Serial.println("L1 Pressed");
-    } else if (ps2.ButtonReleased(PSB_L1)) {
-      stateBut.L1 = false;
-      Serial.println("L1 Released");
-    }
-
-    if (ps2.ButtonPressed(PSB_R1)) {
-      stateBut.R1 = true;
-      Serial.println("R1 Pressed");
-    } else if (ps2.ButtonReleased(PSB_R1)) {
-      stateBut.R1 = false;
-      Serial.println("R1 Released");
-    }
-
-    if (ps2.ButtonPressed(PSB_GREEN)) {
-      stateBut.GREEN = true;
-      Serial.println("GREEN (Triangle) Pressed");
-    } else if (ps2.ButtonReleased(PSB_GREEN)) {
-      stateBut.GREEN = false;
-      Serial.println("GREEN (Triangle) Released");
-    }
-
-    if (ps2.ButtonPressed(PSB_RED)) {
-      stateBut.RED = true;
-      Serial.println("RED (Circle) Pressed");
-    } else if (ps2.ButtonReleased(PSB_RED)) {
-      stateBut.RED = false;
-      Serial.println("RED (Circle) Released");
-    }
-
-    if (ps2.ButtonPressed(PSB_BLUE)) {
-      stateBut.BLUE = true;
-      Serial.println("BLUE (Cross) Pressed");
-    } else if (ps2.ButtonReleased(PSB_BLUE)) {
-      stateBut.BLUE = false;
-      Serial.println("BLUE (Cross) Released");
-    }
-    if (ps2.ButtonPressed(PSB_SQUARE)) {
-      stateBut.SQUARE = true;
-      Serial.println("SQUARE (Cross) Pressed");
-    } else if (ps2.ButtonReleased(PSB_SQUARE)) {
-      stateBut.SQUARE = false;
-      Serial.println("SQUARE (Cross) Released");
-    }
-    if (ps2.ButtonPressed(PSB_CIRCLE)) {
-      stateBut.CIRCLE = true;
-      Serial.println("PSB_CIRCLE (Cross) Pressed");
-    } else if (ps2.ButtonReleased(PSB_CIRCLE)) {
-      stateBut.CIRCLE = false;
-      Serial.println("PSB_CIRCLE (Cross) Released");
-    }
-    if (ps2.ButtonPressed(PSB_TRIANGLE)) {
-      stateBut.TRIANGLE = true;
-      Serial.println("PSB_TRIANGLE (Cross) Pressed");
-    } else if (ps2.ButtonReleased(PSB_TRIANGLE)) {
-      stateBut.TRIANGLE = false;
-      Serial.println("PSB_TRIANGLE (Cross) Released");
-    }
-
-    // if (ps2.ButtonPressed(PSB_PINK)) {
-    //   stateBut.PINKI = true;
-    //   Serial.println("PINK (Square) Pressed");
-    // } else if (ps2.ButtonReleased(PSB_PINK)) {
-    //   stateBut.PINKI = false;
-    //   Serial.println("PINK (Square) Released");
-    // }
-    int analogRX = ps2.Analog(PSS_RX);
-    analogRX = analogRX - 132;
-    stateBut.RX = analogRX;
-    int analogLX = ps2.Analog(PSS_LX);
-    analogLX = analogLX - 132;
-    stateBut.LX = analogLX;
-  }
+     
+      // debounceButton(15, PSB_L3, stateBut.L3, "L3");
+      // debounceButton(16, PSB_R3, stateBut.R3, "R3");
+  // if (ps2.ButtonPressed(PSB_PINK)) {
+  //   stateBut.PINKI = true;
+  //   Serial.println("PINK (Square) Pressed");
+  // } else if (ps2.ButtonReleased(PSB_PINK)) {
+  //   stateBut.PINKI = false;
+  //   Serial.println("PINK (Square) Released");
+  // }
+  // int analogRX = ps2.Analog(PSS_RX);
+  // analogRX = analogRX - 132;
+  // stateBut.RX = analogRX;
+  // int analogLX = ps2.Analog(PSS_LX);
+  // analogLX = analogLX - 132;
+  // stateBut.LX = analogLX;
 }
