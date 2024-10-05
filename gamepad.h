@@ -7,7 +7,7 @@ PS2X ps2;
 #define PS2_CLK 12
 #define pressures false
 #define rumble false
-#define DEBOUNCE_DELAY 50.0  // Thời gian debounce 50ms
+#define DEBOUNCE_DELAY 10.0  // Thời gian debounce 50ms
 struct ButtonState {
   bool debouncedState = false;
   unsigned long lastPressTime = 0;
@@ -114,9 +114,13 @@ void setup_gamepad() {
       break;
   }
 }
+void read_gamepad()
+{
+   ps2.read_gamepad();
+}
 void process_gamepad() {
-  ps2.read_gamepad();
-
+ 
+   ps2.read_gamepad();
     if (state_robot_all == MOVING) {
       debounceButton(0, PSB_PAD_UP, stateBut.PAD_UP, "PAD_UP");
       debounceButton(1, PSB_PAD_RIGHT, stateBut.PAD_RIGHT, "PAD_RIGHT");

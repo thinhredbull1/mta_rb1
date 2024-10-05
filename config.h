@@ -99,9 +99,9 @@ void callFunctionPeriodically(CallbackFunction functionToCall, unsigned long int
 #define FE(signal, state) (state=(state<<1)|(signal&1)&3)==2
 #define SHOOT_L1 44
 #define SHOOT_L2 45
-#define SPEED_SHOOT 200
+#define SPEED_SHOOT 255
 #define STEP_GO 300
-#define SPEED_STEP 400
+#define SPEED_STEP 300 /// speed step nang
 #define MOVING 0
 #define SHOOTING 1
 #define STOP_ALL 2
@@ -123,7 +123,7 @@ const bool serial_tune = 0;
 const int time_run_test=2000;
 const float LOOP_CONTROL=1.0/LOOP_FREQUENCY;
 const float cm_per_count = (PI * WHEEL_DIAMETER) / ENCODER_TOTAL;
-const float delta_cvt = LOOP_CONTROL/cm_per_count;
+const float delta_cvt = LOOP_CONTROL/cm_per_count; // cm -> so xung encoder
 // #define delta_cvt(speed) (speed * LOOP_CONTROL) / cm_per_count  // // cm/s -> delta send
 // const float MM_PER_COUNT_LEFT = (1 - ROTATION_BIAS) * PI * WHEEL_DIAMETER / (ENCODER_PULSES * GEAR_RATIO);
 // const float MM_PER_COUNT_RIGHT = (1 + ROTATION_BIAS) * PI * WHEEL_DIAMETER / (ENCODER_PULSES * GEAR_RATIO);

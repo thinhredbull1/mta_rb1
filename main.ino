@@ -22,8 +22,8 @@ int encod_state[4];
 float yaw_rate = 0;
 float yaw_incre = 0;
 float yaw_desired = 0;
-float p_yaw = 1.35; //1.35
-float d_yaw = 0.09; //0.09
+float p_yaw = 0.35;   //1.35
+float d_yaw = 0.03;  //0.09
 float err_yaw, last_err_yaw;
 RobotSpeedEnum RobotSpeedState;
 void set_state_robot(int state) {
@@ -49,7 +49,7 @@ void DebouncButCount(bool &button, unsigned long time_mill) {
   }
 }
 void moving_control() {
-  
+
   if (!stateBut.L1) RobotSpeedState = NORMAL_SPEED;
   else RobotSpeedState = SLOW_SPEED;
   // else if (stateBut.R1) RobotSpeedState = SPEED_UP;
@@ -57,7 +57,11 @@ void moving_control() {
   float v[3];
   switch (RobotSpeedState) {
     case NORMAL_SPEED:
-      for (int i = 0; i < 3; i++) v[i] = SPEED_RUN;  //cm/s
+      for (int i = 0; i < 3; i++)
+      {
+         v[i] = SPEED_RUN;  //cm/s
+        //  if(i==2)v[i]=80;
+      }
       break;
     case SLOW_SPEED:
       for (int i = 0; i < 3; i++) v[i] = SPEED_SLOW;  //cm/s
@@ -66,6 +70,7 @@ void moving_control() {
       //   for (int i = 0; i < 3; i++) v[i] = SPEED_MAX;  //cm/s
       //   break;
   }
+
   bool running_now = false;
 
   static unsigned long time_stop_x = millis();
@@ -81,7 +86,7 @@ void moving_control() {
     time_stop_x = millis();
   }
   if (!stateBut.PAD_LEFT && !stateBut.PAD_RIGHT) {
-    bool stop_y = true; //false
+    bool stop_y = true;  //false
     // DebouncButCount(stop_y, time_stop_y);
     if (stop_y) v[1] = 0;
   } else {
@@ -90,7 +95,7 @@ void moving_control() {
   }
   if (!stateBut.SQUARE && !stateBut.CIRCLE) {
     // bool stop_yaw = false;
-    bool stop_yaw=true;
+    bool stop_yaw = true;
     // DebouncButCount(stop_yaw, time_stop_yaw);
     if (stop_yaw) {
       v[2] = 0;
@@ -118,6 +123,7 @@ void moving_control() {
   } else if (running_now) {
     robot_speed.x = v[0];
     robot_speed.y = v[1];
+    v[2] = v[2] * 0.5;
     yaw_desired = v[2] * M_PI / 180.0;
     // Serial.println(running_now);
     set_state_robot(MOVING);
@@ -129,7 +135,7 @@ void moving_control() {
   // calSpeedRobot(v[0], v[1], v[2]);
 }
 void button_state_process() {
-  moving_control();
+  // moving_control();
   static bool start_shoot = false;
   bool stop_shoot = false;
   static bool first_go = false;
@@ -164,7 +170,7 @@ void button_state_process() {
   //     if (state_robot_all == SHOOTING) state_robot_all = STOP_ALL;
   //   }
   // }
-  
+
   bool start_nap = false;
   if (state_robot_all == SHOOTING) {
     analogWrite(SHOOT_L1, SPEED_SHOOT);
@@ -180,18 +186,17 @@ void button_state_process() {
       start_nap = false;
       wait_nap = true;
     }
-    bool step_done=!stepper_rotate.isRunning();
+    bool step_done = !stepper_rotate.isRunning();
     if (step_done && wait_nap) {
-      
+
       state_robot_all = STOP_ALL;
       wait_nap = false;
       analogWrite(SHOOT_L1, 0);
       analogWrite(SHOOT_L2, 0);
       // Serial.println("done");
-      
     }
   } else {
-    start_shoot=false;
+    start_shoot = false;
     first_go = false;
     last_time_shoot = millis();
     analogWrite(SHOOT_L1, 0);
@@ -215,7 +220,7 @@ void button_state_process() {
   }
   static bool start_speed_step = false;
   if (stateBut.R2) {
-    run_step_rotate(-SPEED_STEP, SPEED_STEP);
+    run_step_rotate(-SPEED_STEP, SPEED_STEP); // (x x) p--> theo speed (x 0 ) theo khoang
     start_speed_step = true;
     // Serial.println("RUNNING HOME");
   } else if (start_speed_step) {
@@ -230,34 +235,14 @@ void button_state_process() {
   // }
   // Serial.println(state_robot_all);
 }
-void test_speed_robot(float x, float y, float theta) {
-  static unsigned long time_count = millis();
-  if (x == 0 && y == 0 && theta == 0) {
-    time_count = millis();
-    return;
-  }
-  int time_stop;
-  if (x != 0) {
-    time_stop = x / 25;
-    calSpeedRobot(25, 0, 0);
-  }
-  if (y != 0) {
-    time_stop = y / 25;
-    calSpeedRobot(0, 25, 0);
-  }
-  if (theta != 0) {
-    time_stop = theta / 25;
-    calSpeedRobot(0, 0, 25);
-  }
-  if (millis() - time_count > time_stop * 1000) {
-    for (int i = 0; i < NMOTORS; i++) speed_desired[i] = 0;
-  }
-}
+
 void calSpeedRobot(float vx, float vy, float dtheta) {
   // cm/s
   float speed_cm_s[NMOTORS];
   // Serial.println(vx,5);
-  dtheta = dtheta * PI / 180.0;
+  // dtheta = robot_speed.theta;
+  // Serial.println(dtheta);
+  // dtheta = dtheta * PI / 180.0;
   speed_cm_s[M_LEFT_UP] = (vx + vy - dtheta * total_length);
   speed_cm_s[M_RIGHT_UP] = (vx - vy + dtheta * total_length);
   speed_cm_s[M_LEFT_DOWN] = (vx - vy - dtheta * total_length);
@@ -436,6 +421,7 @@ void loop() {
   static unsigned long time_rec = millis();
   static unsigned long time_print = millis();
   static unsigned long time_but = millis();
+  static unsigned long time_moving = millis();
   int delta_now = 0;
   static uint8_t count_loop2 = 0;
 
@@ -456,24 +442,29 @@ void loop() {
     float delta_cm_s[NMOTORS];
     float dt_pos = (float)time_count_now / 1000000.0;
     // Serial.println(dt_pos);
+
     count_loop2 += 1;
-    for (int i = 0; i < NMOTORS; i++) {
-      // pos[i] += delta[i];
-      delta_cm_s[i] = delta[i] * cm_per_count;
-      m_pwm[i] = pid[i].compute(new_delta[i], speed_desired[i], (1.0 / LOOP_FREQUENCY));  // speed >0 ->  delta must >0
-      new_delta[i] = new_delta[i] * 0.22826091 + 0.38586955 * (float)delta[i] + 0.38586955 * (float)last_delta[i];
-      last_delta[i] = delta[i];
-    }
-    updateRobotpos(delta_cm_s);
-
     if (count_loop2 >= 2) {
-
       count_loop2 = 0;
       float err_now = yaw_desired - yaw_rate;  //yaw_desired > 0 nguoc chieu kim dong ho
       err_yaw += err_now;
       robot_speed.theta = p_yaw * err_yaw + (err_yaw - last_err_yaw) * d_yaw;
       last_err_yaw = err_yaw;
     }
+
+    calSpeedRobot(robot_speed.x, robot_speed.y, robot_speed.theta);
+
+    for (int i = 0; i < NMOTORS; i++) {
+      // pos[i] += delta[i];
+      delta_cm_s[i] = delta[i] * cm_per_count;
+      m_pwm[i] = pid[i].compute(new_delta[i], speed_desired[i], (1.0 / LOOP_FREQUENCY));  // speed >0 ->  delta must >0
+      new_delta[i] = new_delta[i] * 0.22826091 + 0.38586955 * (float)delta[i] + 0.38586955 * (float)last_delta[i]; // loc thong thap
+      last_delta[i] = delta[i];
+    }
+    // Serial.println(String(robot_speed.theta)+":"+String(speed_desired[0]));
+    updateRobotpos(delta_cm_s);
+    // bool run_theta = 0;
+
     if (state_robot_all != MOVING) {
       for (int i = 0; i < NMOTORS; i++) {
         pid[i].reset_all();
@@ -484,62 +475,26 @@ void loop() {
       robot_speed.y = 0;
       robot_speed.theta = 0;
     }
-    calSpeedRobot(robot_speed.x, robot_speed.y, robot_speed.theta);
+
+
+    // Serial.println(speed_desired[0]);
     //  Serial.print(pos[1]);
-    if (serial_tune) {
-      if (receive_uart() && start_run_motor == 0) {
-        start_run_motor = 1;
-        for (int i = 0; i < NMOTORS; i++) pid[i].reset_all();
-        time_start = millis();
-      }
-      if (start_run_motor == 1) {
-        static uint16_t count_print = 0;
-        count_print += 1;
-        if (count_print >= 2) {
-          // Serial.println("M0:" + String(pos[M0]));
-          // Serial.println(pos[M1]);
-          // Serial.print(new_delta[M_RIGHT_UP]);
-          // Serial.print(",");
-          // Serial.print(speed_desired[M_RIGHT_UP]);
-          // Serial.print(",");
-          // Serial.print(new_delta[M_LEFT_DOWN]);
-          // Serial.print(",");
-          // Serial.println(new_delta[M_LEFT_UP]);
-
-          Serial.print(yaw_desired);
-          Serial.print(",");
-          Serial.println(yaw_rate);
-          // Serial.println(yaw_rate);
-          count_print = 0;
-        }
-        static int period = time_run_test / 2;
-        uint32_t time_now = millis() - time_start;
-        // Serial.println(millis());
-        // Serial.println(time_start);
-        float sinus = sin(2 * PI * time_now / period);  // base pattern
-        //  speed_desired_left = (2 * 0.16 / PI) * asin(sinus); // triangle
-
-        if (time_now >= time_run_test) {
-          start_run_motor = 0;
-          for (int i = 0; i < NMOTORS; i++) {
-            speed_desired[i] = 0;
-          }
-          robot_speed.x = 0;
-          robot_speed.y = 0;
-          reset_yaw_pd();
-          Serial.println("done");
-        }
-      }
-    }
-  }
   for (int i = 0; i < NMOTORS; i++) {
-    if (state_robot_all != MOVING)m_pwm[i]=0;
+    if (state_robot_all != MOVING) m_pwm[i] = 0;
     control_motor(i, m_pwm[i]);
   }
-  callFunctionPeriodically(process_gamepad, 50, time_rec);
+  // read_gamepad();
+  callFunctionPeriodically(process_gamepad, 20, time_rec);
   // process_gamepad();
-
+  callFunctionPeriodically(moving_control, 10, time_moving);
   callFunctionPeriodically(button_state_process, 100, time_but);
   loop_step();
+  // static unsigned long time_prt = millis();
+  // if (millis() - time_prt>50) {
+  //   time_prt = millis();
+  //   Serial.print(yaw_desired);
+  //   Serial.print(",");
+  //   Serial.println(yaw_rate);
+  // }
   //  Serial.println(pos[M_LEFT_DOWN]);
 }
