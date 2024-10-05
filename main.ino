@@ -475,7 +475,7 @@ void loop() {
       robot_speed.y = 0;
       robot_speed.theta = 0;
     }
-
+  }
 
     // Serial.println(speed_desired[0]);
     //  Serial.print(pos[1]);
