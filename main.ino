@@ -5,7 +5,7 @@
 #include "digitalWriteFast.h"
 #include <Wire.h>
 #include "step_motor.h"
-
+#include"NRF.h"
 bool start_test = 0;
 int m_pwm[NMOTORS];
 int speed_desired_left = 0;
@@ -142,6 +142,20 @@ void button_state_process() {
   static unsigned long time_start_shoot = millis();
   static unsigned long time_stop_shoot = millis();
   static unsigned long last_time_shoot = millis();
+
+  static bool need_stop=false;
+  static unsigned long time_to_stop=millis();
+  if(stateBut.START)
+  {
+    need_stop=true;
+    time_to_stop=millis();
+    sendMsg(ON);
+  }
+  if(need_stop&&millis()-time_to_stop>250)
+  {
+    need_stop=false;
+    sendMsg(OFF);
+  }
   // switch(state_robot_all)
   // {
   //   case MOVING:
