@@ -422,6 +422,7 @@ void setup() {
   pid[M_RIGHT_UP].setParams(P_speed, I_speed, D_speed, 255);    //39.2 34.6
   setup_step();
   setup_gamepad();
+  setup_NRF();
   attachInterrupt(digitalPinToInterrupt(enca[M_LEFT_DOWN]), readEncoderM1, CHANGE);
   attachInterrupt(digitalPinToInterrupt(enca[M_LEFT_UP]), readEncoderM0, CHANGE);
   attachInterrupt(digitalPinToInterrupt(enca[M_RIGHT_DOWN]), readEncoderM2, CHANGE);
