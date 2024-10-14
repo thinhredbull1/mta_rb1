@@ -77,7 +77,7 @@ void callFunctionPeriodically(CallbackFunction functionToCall, unsigned long int
     previousMillis = currentMillis;
   }
 }
-#define SPEED_RUN 100 //cm/s
+#define SPEED_RUN 150 //cm/s
 #define SPEED_SLOW 25 //cm/s
 #define SPEED_MAX 100 //cm/s
 #define NMOTORS 4
