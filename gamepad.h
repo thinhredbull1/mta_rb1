@@ -349,7 +349,7 @@ void process_gamepad() {
     
        
       // debounceButton(8, PSB_SELECT, stateBut.SELECT, "SELECT");
-      // debounceButton(9, PSB_START, stateBut.START, "START");
+      debounceButton(9, PSB_START, stateBut.START, "START");
       // debounceButton(10, PSB_GREEN, stateBut.GREEN, "GREEN");
       // debounceButton(11, PSB_RED, stateBut.RED, "RED");
       // debounceButton(12, PSB_BLUE, stateBut.BLUE, "BLUE");
